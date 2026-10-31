@@ -59,15 +59,13 @@ Một trong những sai lầm lớn nhất của người mới học là **nh�
 - **Không có kiểm tra kiểu tự động ở Runtime**: TypeScript không thể bảo vệ bạn trước dữ liệu trả về từ API, payload người dùng nhập hay `JSON.parse()`. Để an toàn ở runtime, bạn phải dùng type guard hoặc thư viện schema validation (Zod, Valibot).
 
 ```typescript
-// Trong file .ts
 interface User {
   id: string;
   age: number;
 }
 
 const raw = JSON.parse('{"id": "1", "age": "twenty"}') as User;
-// ❌ TypeScript vẫn cho qua vì "as User" đã bịt mắt trình biên dịch
-// 💥 Lúc runtime, raw.age.toFixed(0) sẽ văng lỗi: raw.age.toFixed is not a function!
+raw.age.toFixed(0);
 ```
 
 ---
@@ -80,18 +78,14 @@ JavaScript có 7 kiểu nguyên thủy: `string`, `number`, `boolean`, `null`, `
 Tránh hoàn toàn toán tử `==` vì bảng chân trị phức tạp và dễ gây lỗi tiềm ẩn. Luôn dùng `===` (Strict equality: kiểm tra cả giá trị lẫn kiểu).
 
 ```javascript
-// Các trường hợp ép kiểu kỳ quặc (Coercion trap):
-[] + []           // "" (chuỗi rỗng)
-[] + {}           // "[object Object]"
-true + true       // 2
-"5" - 3           // 2 (ép về number)
-"5" + 3           // "53" (ép về string)
+[] + [];
+[] + {};
+true + true;
+"5" - 3;
+"5" + 3;
 
-// So sánh:
-0 == false        // true  (Nguy hiểm!)
-0 === false       // false (An toàn)
-null == undefined // true
-null === undefined// false
+0 === false;
+null === undefined;
 ```
 
 ---
@@ -111,13 +105,8 @@ interface AppSettings {
 }
 
 function initServer(config: AppSettings) {
-  // ❌ SAI LẦM: Nếu port = 0, port || 3000 sẽ lấy 3000!
   const portA = config.port || 3000;
-
-  // ✅ ĐÚNG: Giữ lại số 0 vì 0 không phải null/undefined
   const portB = config.port ?? 3000;
-
-  // Optional chaining an toàn lồng nhau
   const isDebug = config?.verbose ?? false;
 }
 ```
@@ -137,10 +126,8 @@ function initServer(config: AppSettings) {
 
 ```javascript
 {
-  // Bắt đầu TDZ của biến myVar
-  // console.log(myVar); // 💥 ReferenceError: Cannot access 'myVar' before initialization
-  let myVar = 42;       // Kết thúc TDZ
-  console.log(myVar);   // 42
+  let myVar = 42;
+  console.log(myVar);
 }
 ```
 
@@ -150,11 +137,11 @@ function initServer(config: AppSettings) {
 
 ```
              ┌───────────┐
-             │    any    │  <-- Bỏ qua type checking (Top + Bottom Type lai)
+             │    any    │
              └───────────┘
                    │
              ┌───────────┐
-             │  unknown  │  <-- Top Type chuẩn (Nhận mọi thứ, nhưng bắt verify)
+             │  unknown  │
              └───────────┘
                    │
       ┌────────────┴────────────┐
@@ -164,7 +151,7 @@ Các kiểu cụ thể (string, number, object, ...)
       └────────────┬────────────┘
                    │
              ┌───────────┐
-             │   never   │  <-- Bottom Type (Không bao giờ xảy ra giá trị nào)
+             │   never   │
              └───────────┘
 ```
 
@@ -177,10 +164,8 @@ Các kiểu cụ thể (string, number, object, ...)
 
 ```typescript
 function processExternalData(data: unknown) {
-  // data.trim(); // ❌ Lỗi compile: Object is of type 'unknown'
-  
   if (typeof data === "string") {
-    console.log(data.trim()); // ✅ Hợp lệ vì TS đã narrow data -> string
+    console.log(data.trim());
   }
 }
 
@@ -201,29 +186,24 @@ function panic(message: string): never {
 
 ```typescript
 const numbers = [3, 1, 4, 1, 5];
-
-// ES2023: Sắp xếp mà không sửa mảng gốc
 const sorted = numbers.toSorted((a, b) => a - b);
-console.log(numbers); // [3, 1, 4, 1, 5] (Vẫn giữ nguyên!)
-console.log(sorted);  // [1, 1, 3, 4, 5]
+console.log(numbers);
+console.log(sorted);
 ```
 
 ### Tuples và `as const` (Const Assertions)
 `as const` biến toàn bộ object/mảng thành giá trị literal không thể sửa đổi (`readonly`) ở cấp độ sâu nhất (*deep readonly*).
 
 ```typescript
-// Không dùng as const -> Kiểu suy luận: string[]
 const routes = ["/home", "/about", "/contact"];
 
-// Dùng as const -> Kiểu suy luận: readonly ["/home", "/about", "/contact"]
 const CONFIG = {
   apiEndpoint: "https://api.domain.com",
   timeout: 5000,
   roles: ["ADMIN", "MEMBER"] as const
 } as const;
 
-// CONFIG.timeout = 10000; // ❌ Lỗi: Cannot assign to 'timeout' because it is a read-only property.
-type UserRole = typeof CONFIG.roles[number]; // "ADMIN" | "MEMBER" (Tự động sinh Union Type!)
+type UserRole = typeof CONFIG.roles[number];
 ```
 
 ---
@@ -244,18 +224,15 @@ Cả hai đều định nghĩa hình dạng (shape) của object, nhưng có cá
 Rất hữu ích khi mở rộng type của thư viện bên ngoài (ví dụ thêm thuộc tính vào `Window` hoặc `ProcessEnv`).
 
 ```typescript
-// Khai báo lần 1
 interface CartItem {
   id: string;
   price: number;
 }
 
-// Khai báo lần 2 tại file khác hoặc bên dưới
 interface CartItem {
   quantity: number;
 }
 
-// TypeScript tự động hợp nhất:
 const item: CartItem = { id: "p1", price: 100, quantity: 2 };
 ```
 
@@ -274,9 +251,7 @@ const metaCache = new WeakMap<object, { lastAccess: number }>();
 let userEntity: { name: string } | null = { name: "Hải" };
 metaCache.set(userEntity, { lastAccess: Date.now() });
 
-// Khi ta giải phóng tham chiếu:
-userEntity = null; 
-// Object { name: "Hải" } và giá trị trong metaCache sẽ được Garbage Collector thu hồi tự động!
+userEntity = null;
 ```
 
 ---
@@ -297,12 +272,11 @@ const original = {
   metadata: { verified: true }
 };
 
-// Deep copy an toàn:
 const deepCopy = structuredClone(original);
 deepCopy.metadata.verified = false;
 
-console.log(original.metadata.verified); // true (Không hề bị ảnh hưởng!)
-console.log(deepCopy.createdAt instanceof Date); // true (Giữ nguyên instance Date!)
+console.log(original.metadata.verified);
+console.log(deepCopy.createdAt instanceof Date);
 ```
 
 ---
@@ -312,17 +286,14 @@ console.log(deepCopy.createdAt instanceof Date); // true (Giữ nguyên instance
 ## 3.1 Function Declarations vs Expressions vs Arrow Functions
 
 ```javascript
-// 1. Function Declaration (Được hoisted hoàn toàn lên đầu scope)
 function calculateTotal(a, b) {
   return a + b;
 }
 
-// 2. Function Expression (Biến được hoist nhưng ở trạng thái TDZ/undefined)
 const calculateDiff = function(a, b) {
   return a - b;
 };
 
-// 3. Arrow Function (Không có `this` riêng, không có `arguments`, không làm constructor được)
 const multiply = (a, b) => a * b;
 ```
 
@@ -339,19 +310,14 @@ const agent = {
     console.log(`Tôi là ${this.name}`);
   },
   delayedGreet() {
-    // Arrow function giữ lexical this trỏ về agent
     setTimeout(() => {
       console.log(`Delayed: Tôi là ${this.name}`);
     }, 100);
   }
 };
 
-const orphanGreet = agent.greet;
-orphanGreet(); // 💥 "Tôi là undefined" (mất ngữ cảnh this vì gọi độc lập)
-
-// Cố định ngữ cảnh bằng .bind():
 const boundGreet = agent.greet.bind(agent);
-boundGreet(); // ✅ "Tôi là Omega"
+boundGreet();
 ```
 
 ---
@@ -361,11 +327,8 @@ boundGreet(); // ✅ "Tôi là Omega"
 TypeScript cho phép định nghĩa **Function Overloads** để cung cấp nhiều kiểu tham số / kết quả trả về khác nhau trên cùng một tên hàm logic.
 
 ```typescript
-// 1. Các overload signatures (chỉ khai báo kiểu)
 function parseInput(input: string): string[];
 function parseInput(input: number): number[];
-
-// 2. Implementation signature (chứa code thực tế, gom tất cả kiểu)
 function parseInput(input: string | number): (string | number)[] {
   if (typeof input === "string") {
     return input.split("");
@@ -373,8 +336,8 @@ function parseInput(input: string | number): (string | number)[] {
   return [input];
 }
 
-const resStr = parseInput("hello"); // TS tự hiểu kiểu trả về là string[]
-const resNum = parseInput(100);     // TS tự hiểu kiểu trả về là number[]
+const resStr = parseInput("hello");
+const resNum = parseInput(100);
 ```
 
 ---
@@ -394,7 +357,6 @@ Animal.prototype.speak = function() {
 };
 
 const dog = new Animal("Cún");
-// Chuỗi Prototype Chain: dog -> Animal.prototype -> Object.prototype -> null
 ```
 
 ---
@@ -420,9 +382,6 @@ class Vault {
 }
 
 const v = new Vault();
-// @ts-ignore
-console.log(v["softSecret"]); // ✅ In ra "ts-private" lúc runtime!
-// console.log(v.#hardSecret); // 💥 Lỗi cú pháp tức thì lúc compile & runtime!
 ```
 
 ---
@@ -434,12 +393,10 @@ console.log(v["softSecret"]); // ✅ In ra "ts-private" lúc runtime!
 
 ```typescript
 abstract class BaseRepository<T> {
-  // Logic dùng chung có sẵn:
   log(action: string) {
     console.log(`[AUDIT] Action: ${action} at ${new Date().toISOString()}`);
   }
 
-  // Buộc lớp con phải tự triển khai:
   abstract findById(id: string): Promise<T | null>;
 }
 ```
@@ -455,16 +412,16 @@ TypeScript phân tích luồng code để thu hẹp kiểu biến thông qua cá
 ```typescript
 function processValue(val: string | number | Date | { [key: string]: any }) {
   if (typeof val === "string") {
-    return val.toUpperCase(); // string
+    return val.toUpperCase();
   }
   if (typeof val === "number") {
-    return val.toFixed(2);    // number
+    return val.toFixed(2);
   }
   if (val instanceof Date) {
-    return val.getFullYear(); // Date instance
+    return val.getFullYear();
   }
   if ("customProperty" in val) {
-    return val.customProperty; // Object có key customProperty
+    return val.customProperty;
   }
 }
 ```
@@ -481,7 +438,6 @@ interface AdminUser {
   permissions: string[];
 }
 
-// Custom Type Predicate
 function isAdmin(user: any): user is AdminUser {
   return (
     typeof user === "object" &&
@@ -491,7 +447,6 @@ function isAdmin(user: any): user is AdminUser {
   );
 }
 
-// Assertion Function: Nếu không thỏa mãn thì ném lỗi dừng chương trình
 function assertIsAdmin(user: any): asserts user is AdminUser {
   if (!isAdmin(user)) {
     throw new Error("Truy cập bị từ chối: Yêu cầu quyền Admin!");
@@ -500,7 +455,6 @@ function assertIsAdmin(user: any): asserts user is AdminUser {
 
 function handleDashboard(account: unknown) {
   assertIsAdmin(account);
-  // Từ dòng này trở đi, TS tự tin account là AdminUser 100%!
   console.log(account.permissions.length);
 }
 ```
@@ -532,8 +486,6 @@ function renderState(state: NetworkState) {
     case "error":
       return `Lỗi: ${state.error.message}`;
     default: {
-      // Nếu ai đó thêm { status: "paused" } vào NetworkState mà quên thêm case ở đây,
-      // TypeScript sẽ báo lỗi ngay tại dòng gán này!
       const _unreachable: never = state;
       throw new Error(`Chưa xử lý trạng thái: ${_unreachable}`);
     }
@@ -550,15 +502,13 @@ function renderState(state: NetworkState) {
 Generic cho phép viết mã linh hoạt, tái sử dụng cao nhưng vẫn giữ nguyên vẹn thông tin kiểu của dữ liệu truyền vào.
 
 ```typescript
-// Ràng buộc T phải có thuộc tính length kiểu number
 function logLength<T extends { length: number }>(item: T): T {
   console.log(`Độ dài: ${item.length}`);
   return item;
 }
 
-logLength("Hello World");   // ✅ Chuỗi có .length
-logLength([1, 2, 3]);       // ✅ Mảng có .length
-// logLength(123);          // ❌ Lỗi compile: Số không có thuộc tính length
+logLength("Hello World");
+logLength([1, 2, 3]);
 ```
 
 ---
@@ -574,13 +524,9 @@ interface DatabaseRecord {
   };
 }
 
-// Lấy tất cả key của DatabaseRecord: "id" | "payload"
 type RecordKey = keyof DatabaseRecord;
-
-// Lấy kiểu của một trường cụ thể: { ip: string; userAgent: string }
 type PayloadType = DatabaseRecord["payload"];
 
-// Hàm đọc thuộc tính an toàn tuyệt đối
 function getProp<T, K extends keyof T>(obj: T, key: K): T[K] {
   return obj[key];
 }
@@ -599,7 +545,6 @@ interface Product {
   price: number;
 }
 
-// Tự động sinh hàm Getters: { getId: () => string; getName: () => string; getPrice: () => number }
 type PropertyGetters<T> = {
   [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K];
 };
@@ -616,15 +561,13 @@ Conditional Type có dạng `T extends U ? X : Y` (Tương tự toán tử ba ng
 Từ khóa `infer` cho phép **trích xuất một kiểu con bên trong một kiểu phức tạp** (như kiểu phần tử mảng, kiểu trả về của Promise, kiểu tham số hàm).
 
 ```typescript
-// Trích xuất kiểu phần tử bên trong mảng
 type UnwrapArray<T> = T extends (infer Element)[] ? Element : T;
 
-type A = UnwrapArray<string[]>; // string
-type B = UnwrapArray<number>;   // number (giữ nguyên vì không phải mảng)
+type A = UnwrapArray<string[]>;
+type B = UnwrapArray<number>;
 
-// Trích xuất kiểu T bên trong Promise<T> (Tương đương Awaited<T> của TS)
 type UnwrapPromise<T> = T extends Promise<infer Result> ? Result : T;
-type UserPromise = UnwrapPromise<Promise<{ id: number }>>; // { id: number }
+type UserPromise = UnwrapPromise<Promise<{ id: number }>>;
 ```
 
 ---
@@ -637,13 +580,11 @@ Ghép nối chuỗi kiểu tĩnh, kết hợp với union để tạo ra hệ th
 type HttpMethod = "GET" | "POST" | "DELETE";
 type ApiRoute = "/users" | "/products";
 
-// Tổ hợp 6 endpoints hợp lệ: "GET /users" | "GET /products" | ...
 type EndpointSignature = `${HttpMethod} ${ApiRoute}`;
 
-// Kiểm soát tên sự kiện dạng kebab-case
 type EventGroup = "user" | "order";
 type EventAction = "created" | "deleted" | "updated";
-type SystemEvent = `${EventGroup}:${EventAction}`; // "user:created" | "order:deleted" | ...
+type SystemEvent = `${EventGroup}:${EventAction}`;
 ```
 
 ---
@@ -679,13 +620,13 @@ JavaScript là ngôn ngữ đơn luồng (Single-threaded). Nó xử lý đa nhi
                        ▲
                        │ Khi Call Stack rỗng
       ┌────────────────┴────────────────┐
-      │      1. Microtask Queue         │ <-- Tuyệt đối ưu tiên!
-      │  (Promise.then, queueMicrotask) │     (Chạy sạch toàn bộ queue)
+      │      1. Microtask Queue         │
+      │  (Promise.then, queueMicrotask) │
       └─────────────────────────────────┘
                        ▲
                        │ Sau khi Microtask Queue cạn
       ┌────────────────┴────────────────┐
-      │       2. Macrotask Queue        │ <-- Mỗi vòng chỉ lấy 1 task!
+      │       2. Macrotask Queue        │
       │ (setTimeout, setInterval, I/O)  │
       └─────────────────────────────────┘
 ```
@@ -695,16 +636,14 @@ JavaScript là ngôn ngữ đơn luồng (Single-threaded). Nó xử lý đa nhi
 console.log("1");
 
 setTimeout(() => {
-  console.log("2"); // Macrotask
+  console.log("2");
 }, 0);
 
 Promise.resolve().then(() => {
-  console.log("3"); // Microtask
+  console.log("3");
 });
 
 console.log("4");
-
-// Thứ tự in ra chính xác: 1 -> 4 -> 3 -> 2
 ```
 
 ---
@@ -717,7 +656,6 @@ Một `Promise` có 3 trạng thái: `pending` (chờ), `fulfilled` (thành côn
 - Bên dưới, hàm `async` luôn luôn đóng gói kết quả trả về trong một `Promise`.
 
 ```typescript
-// Sai lầm phổ biến: async không có await hoặc try/catch thiếu cẩn thận
 async function fetchAccountData(id: string): Promise<User> {
   try {
     const res = await fetch(`/api/users/${id}`);
@@ -726,7 +664,6 @@ async function fetchAccountData(id: string): Promise<User> {
     }
     return (await res.json()) as User;
   } catch (err: unknown) {
-    // Tránh để lọt unknown mà không định dạng
     const message = err instanceof Error ? err.message : "Lỗi không xác định";
     throw new Error(`Không thể lấy dữ liệu user: ${message}`);
   }
@@ -745,7 +682,6 @@ async function fetchAccountData(id: string): Promise<User> {
 | `Promise.any` | Trả về promise **thành công đầu tiên** | Chỉ reject (ném `AggregateError`) khi **toàn bộ** đều thất bại |
 
 ```typescript
-// Pattern: Timeout cho một API Call dùng Promise.race
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error("Timeout sau " + ms + "ms")), ms)
@@ -775,7 +711,6 @@ async function* streamLines(url: string): AsyncGenerator<string> {
   }
 }
 
-// Tiêu thụ stream dễ dàng với for await...of
 async function consume() {
   for await (const chunk of streamLines("https://api.example.com/stream")) {
     console.log("Nhận được gói dữ liệu:", chunk);
@@ -794,27 +729,23 @@ Một file cấu hình chuẩn mực, bảo vệ tối đa mã nguồn:
 ```json
 {
   "compilerOptions": {
-    /* 1. Môi trường Thực thi & Module */
-    "target": "ES2022",                          // Tạo mã JS tương thích tiêu chuẩn hiện đại
-    "module": "NodeNext",                        // Chuẩn ECMAScript Modules theo cơ chế Node.js mới
-    "moduleResolution": "NodeNext",              // Cách giải quyết đường dẫn file tương ứng NodeNext
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     
-    /* 2. Kiểm soát Kiểu Chặt Chẽ (Strict Mode) */
-    "strict": true,                              // Kích hoạt tất cả cờ nghiêm ngặt bên dưới
-    "noImplicitAny": true,                       // Không cho phép biến ngầm định kiểu any
-    "strictNullChecks": true,                    // Bắt buộc xử lý null và undefined tường minh
-    "noUncheckedIndexedAccess": true,            // Khi truy cập mảng arr[0], kiểu sẽ là T | undefined (CỰC KỲ QUAN TRỌNG)
-    "exactOptionalPropertyTypes": true,          // Phân biệt rõ giữa undefined và thuộc tính bị bỏ qua
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     
-    /* 3. Output & Emission */
     "rootDir": "./src",
     "outDir": "./dist",
-    "declaration": true,                         // Tự sinh file kiểu .d.ts
-    "sourceMap": true,                           // Hỗ trợ debug mapping ngược từ JS về TS
+    "declaration": true,
+    "sourceMap": true,
     
-    /* 4. Khả năng tương thích */
-    "esModuleInterop": true,                     // Cho phép import CommonJS modules mượt mà
-    "skipLibCheck": true                         // Bỏ qua kiểm tra lỗi type trong node_modules để tăng tốc build
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*"]
 }
@@ -829,10 +760,8 @@ Trong môi trường ESM hiện đại (`"module": "NodeNext"`):
 - Không còn các biến toàn cục cũ của CommonJS như `__dirname` và `__filename`. Thay vào đó, dùng `import.meta.url`.
 
 ```typescript
-// Trong file src/services/user.ts:
-import { helper } from "./utils.js"; // ✅ Bắt buộc phải có đuôi .js dù file thực tế là utils.ts!
+import { helper } from "./utils.js";
 
-// Lấy đường dẫn thư mục hiện tại trong ESM:
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
@@ -847,9 +776,6 @@ const __dirname = dirname(__filename);
 Khi làm việc với các thư viện bên thứ 3 không có sẵn types, hoặc muốn thêm các thuộc tính mở rộng cho các global module:
 
 ```typescript
-// types/global.d.ts
-
-// Mở rộng interface Request của Express
 declare namespace Express {
   export interface Request {
     currentUser?: {
@@ -859,7 +785,6 @@ declare namespace Express {
   }
 }
 
-// Khai báo cho file tài nguyên không phải code (.png, .css)
 declare module "*.png" {
   const content: string;
   export default content;
