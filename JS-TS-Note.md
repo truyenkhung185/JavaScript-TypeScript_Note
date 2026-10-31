@@ -1,4 +1,4 @@
-# ⚡ Sổ Tay Thực Chiến JavaScript & TypeScript Hiện Đại (Modern JS & TS Handbook)
+# 📘 Ghi Chú JS và TS
 
 > Bản tóm tắt cô đọng, chuyên sâu và có tính ứng dụng cao dành cho lập trình viên từ căn bản đến nâng cao. Được thiết kế theo góc nhìn thực chiến, giải quyết triệt để sự khác biệt cốt lõi giữa JavaScript Runtime và TypeScript Compiler, các bẫy phổ biến và best practices hiện đại.
 
